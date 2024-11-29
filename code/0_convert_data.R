@@ -24,6 +24,7 @@ new_folder <- file.path(ROOT_FOLDER, 'data/raw/SIMAT')
 create_folder(new_folder)
 for (file in files) {
   for (file_sheet in excel_sheets(file)) {
+    message(file)
     new_file <- sprintf("%s_%s.parquet", 
                         str_remove(basename(file), "\\..*"), file_sheet)
     
