@@ -32,3 +32,10 @@ for (file in files) {
       write_parquet(file.path(new_folder, new_file))
   }
 }
+
+raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx')
+create_partial_dictionary(folder = new_folder, files = files, 
+                          dict_path = raw_dict_path, verbose = T, overwrite = F)
+sort_partial_dictionary(raw_dict_path, overwrite = T)
+
+

@@ -1,0 +1,1 @@
+DICTS_FOLDER <- file.path(ROOT_FOLDER, "/data/metadata/dicts/")
