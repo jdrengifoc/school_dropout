@@ -1,13 +1,4 @@
-source("_setup.R")
-
-create_folder <- function(folders, recursive = T) {
-  for (folder in folders) {
-    if (!file.exists(folder)) {
-      dir.create(folder, recursive = recursive)
-      print(paste("created", folder))
-    }
-  }
-}
+source("_setup_school_dropout.R")
 
 # SIMAT 2004 - 2022 -------------------------------------------------------------------
 
@@ -42,27 +33,74 @@ sort_partial_dictionary(raw_dict_path, overwrite = T)
 
 # SIMAT 2017-2023------------------
 
-parquet_folder_2017_2023 <- "/Users/mariajoseguerrero/Documents/Secretaria de Educación/Deserción Escolar/data/SIMAT/SIMAT 2017-2023"
-output_path <- file.path(DICTS_FOLDER, "Raw_SIMAT_2017_2023.xlsx")
 
-files <- list.files(parquet_folder_2017_2023)
+### TAREA. INCORPORAR CODIGO DE CONVERSION A PARQUET
+
+
+files <- list.files(FOLDER_SIMAT_MINISTRY)
 
 raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2017_2023.xlsx')
 
-
-create_partial_dictionary(folder = parquet_folder_2017_2023, files = files, 
+create_partial_dictionary(folder = FOLDER_SIMAT_MINISTRY, files = files, 
                           dict_path = raw_dict_path, verbose = T, overwrite = T)
 sort_partial_dictionary(raw_dict_path, overwrite = T)
 
 
 
+# Edit dictionaries -------------------------------------------------------
+
+raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx')
+raw_clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_clean.xlsx')
+
+
+# TAREA. LEER TABLA
+# trash_files <- read_excel(...)
+# complementary_files <- read_excel(...)
+# base_files <- read_excel(...)
+
+# TAREA. Completar edicion de diccionarios
+get_dicts(raw_dict_path) %>% 
+  unify_columns("NOMBRE1", "AL_PRIM_NOMB") %>% 
+  unify_columns("NOMBRE1", "NAME1") %>% 
+  delete_columns(c("AL_PRIM_NOMB", "NAME1")) %>% 
+  # modify_uniname("OLD_UNINAME", 'NEW_UNINAME') %>%
+  # "numeric", "integer" "character", "date", "logical"
+  # La menos restrictiva
+  # modify_uniclass("NOMBRE1", "character") %>% 
+  # modify_uniclass(c("NOMBRE1", "NOMBRE2"), 'character') %>% 
+  # delete_files(c(trash_files, complementary_files)) %>% 
+  save_dicts(raw_clean_dict_path)
 
 
 
 
 
+# Unify sensitive information ---------------------------------------------
 
 
+folder <- file.path(ROOT_FOLDER, 'data/raw/SIMAT')
+files <- base_files
+dict <- read_excel(raw_clean_dict_path, sheet = 'colname')
+SELECTED_COLUMNS <- dict$uniname
+new_folder <- file.path(ROOT_FOLDER, 'data/processed/SIMAT/Medellin')
 
+create_folders(new_folder)
+for (file in files) {
+  print("Begin file")
+  new_file <- sprintf("SIMAT_matricula_validada_%s.parquet",
+                      str_extract(file, '\\d{4}'))
+  arrow::open_dataset(file.path(folder, file)) %>%
+    unify_colnames(dict, file, SELECTED_COLUMNS) %>% 
+    unify_classes(dict, file, SELECTED_COLUMNS) %>% 
+    write_parquet(file.path(new_folder, new_file))
+  print("End file")
+}
 
+# Crear ids
+# Eliminar informacion sensible.
+
+# TAREA. TABLA CON LOS UNINAMES ASOCIADOS A LAS VARIABLES DE INFORMACION SENSIBLE.
+# banned_columns <- read_excel()
+# arrow::open_dataset(file.path(folder, file)) %>% 
+#   select(all_of(banned_columns))
 
