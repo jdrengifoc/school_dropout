@@ -106,6 +106,7 @@ get_dicts(raw_dict_path) %>%
 read_excel(raw_clean_dict_path) %>% filter(uniname == "DIRECCION_RESIDENCIA") %>% View
 # Unify base files --------------------------------------------------------
 
+raw_clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_clean.xlsx')
 folder <- FOLDER_SIMAT_2004
 files <- read_excel(
   file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx'), sheet = "Clasificacion") %>% 
