@@ -80,6 +80,7 @@ get_dicts(raw_dict_path) %>%
   unify_uninames("NRO_DOCUMENTO", "NRO_DOCUM") %>% 
   unify_uninames("NRO_DOCUMENTO", "NRO_DCTO") %>% 
   unify_uninames("DIRECCION_RESIDENCIA", "DIR_RES") %>% 
+  unify_uninames("DIRECCION_RESIDENCIA", "DIREC_RESID") %>% 
   unify_uninames("DIRECCION_RESIDENCIA", "DIREC_RESIDENCIA") %>% 
   unify_uninames("DIRECCION_RESIDENCIA", "DIRACUD") %>% 
   unify_uninames("TEL", "TEL_RES") %>% 
@@ -102,7 +103,7 @@ get_dicts(raw_dict_path) %>%
   modify_uniclass(c("NRO_DOCUMENTO", "TIPO_DOCUMENTO"), 'character') %>% 
   save_dicts(raw_clean_dict_path)
 
-
+read_excel(raw_clean_dict_path) %>% filter(uniname == "DIRECCION_RESIDENCIA") %>% View
 # Unify base files --------------------------------------------------------
 
 folder <- FOLDER_SIMAT_2004
@@ -126,10 +127,10 @@ for (file in files) {
 }
 
 files <- list.files(new_folder)
-raw_dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004_2022.xlsx')
+dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004_2022.xlsx')
 create_partial_dictionary(folder = new_folder, files = files, 
-                          dict_path = raw_dict_path, verbose = T, overwrite = T)
-sort_partial_dictionary(raw_dict_path, overwrite = T)
+                          dict_path = dict_path, verbose = T, overwrite = T)
+sort_partial_dictionary(dict_path, overwrite = T)
 
 # Remove sensitive information --------------------------------------------
 
@@ -142,7 +143,9 @@ sensitive_vars <- c(
   "NRO_DOCUMENTO_MADRE", "NOMBRE_PADRE", "NRO_DOCUMENTO_PADRE"
   )
 
-dict <- read_excel(raw_clean_dict_path) %>% filter(uniname %in% sensitive_vars) %>% View
+read_excel(dict_path) %>% filter(uniname %in% sensitive_vars) %>% View
+dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004_2022.xlsx')
+read_excel(dict_path) %>% filter(uniname %in% sensitive_vars) %>% View
 # Crear ids
 # Eliminar informacion sensible.
 
