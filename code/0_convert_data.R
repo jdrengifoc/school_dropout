@@ -98,30 +98,11 @@ get_dicts(raw_dict_path) %>%
   modify_uniname("NRO_DOCUMENTO_MADRE", "AL_MADR_ID") %>% 
   modify_uniname("NOMBRE_PADRE", "AL_PADR_NOMB") %>% 
   modify_uniname("NRO_DOCUMENTO_PADRE", "AL_PADR_ID") %>% 
-  # TAREA. Desacparecer warnings y revisar que elimine todo.
-  delete_uninames(
-    c("AL_PRIM_NOMB", "NAME1", "AL_SEGU_NOMB", "AL_PRIM_APEL", "AL_SEGU_APEL",
-      "TDOC", "TI_CODI_ID", "TDOC", "TIPO_DCTO...6", "TIPO DCTO...8", "TD",
-      "NDOC", "AL_NUME_ID", "NRO_DOCUM", "DIR_RES", "DIREC_RESIDENCIA",
-      "DIRECCION_RESIDENCIA HOMOLOGADA", 
-      "DIRACUD", "TEL_RES", "AL_TELE_RESI", "TELEFONO", "TEL_UBICAC", "TELACUD",
-      "AL_TELE_RESI_ACU", "AL_PADR_TEL", "AL_MADR_TEL", "NDOCACUD", "AL_CEDU_ACUD", 
-      "NOMB1 ACUD", "AL_NOMB_ACUD", "NOMB2 ACUD", "AL_MADR_NOMB", "AL_MADR_ID", 
-      "AL_PADR_NOMB", "AL_PADR_ID", "NRO_DCTO")
-  ) %>% 
-  # TAREA. modificar uniclass para los uninames que tienen missing de las variables de arriba.
-  # view_colname() %>% 
-  # filter(uniname %in% c("NOMBRE1", "NOMBRE2")) %>% View
-  # La menos restrictiva
-    modify_uniclass(c("NRO_DOCUMENTO", "TIPO_DOCUMENTO"), 'character') %>% 
-    
-  #uninames_to_modify = "NRO_DOCUMENTO","TIPO_DOCUMENTO",  
-  #new_uniclass = "character" # "numeric", "integer" "character", "date", "logical"
-  # ) %>% 
-  # modify_uniclass(c("NOMBRE1", "NOMBRE2"), 'character') %>% 
+  modify_uniclass(c("NRO_DOCUMENTO", "TIPO_DOCUMENTO"), 'character') %>% 
   save_dicts(raw_clean_dict_path)
 
-# Unify sensitive information ---------------------------------------------
+
+# Unify base files --------------------------------------------------------
 
 folder <- FOLDER_SIMAT_2004
 files <- read_excel(
@@ -143,6 +124,24 @@ for (file in files) {
   message("End", file)
 }
 
+files <- list.files(new_folder)
+raw_dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004_2022.xlsx')
+create_partial_dictionary(folder = new_folder, files = files, 
+                          dict_path = raw_dict_path, verbose = T, overwrite = T)
+sort_partial_dictionary(raw_dict_path, overwrite = T)
+
+# Remove sensitive information --------------------------------------------
+
+sensitive_vars <- c(
+  "NOMBRE1", "NOMBRE2", "APELLIDO1", "APELLIDO2", 
+  "TIPO_DOCUMENTO", "NRO_DOCUMENTO", "DIRECCION_RESIDENCIA", 
+  "TEL", "TEL_ACUDIENTE", "TEL_PADRE", "TEL_MADRE", 
+  "TIPO_DOCUMENTO_ACUDIENTE", "NRO_DOCUMENTO_ACUDIENTE", 
+  "NOMBRE1_ACUDIENTE", "NOMBRE2_ACUDIENTE", "NOMBRE_MADRE", 
+  "NRO_DOCUMENTO_MADRE", "NOMBRE_PADRE", "NRO_DOCUMENTO_PADRE"
+  )
+
+dict <- read_excel(raw_clean_dict_path) %>% filter(uniname %in% sensitive_vars) %>% View
 # Crear ids
 # Eliminar informacion sensible.
 
