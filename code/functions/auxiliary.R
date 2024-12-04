@@ -20,7 +20,17 @@ get_dicts <- function(dict_path) {
   )
 }
 
-unify_columns <- function(dicts, primary_uniname, secondary_uniname) {
+unify_uninames <- function(dicts, primary_uniname, secondary_uniname) {
+  
+  if (!'uniname' %in% names(dicts$colname)) {
+    stop('The column uniname must be in the dictionaries.')
+  }
+  if (!primary_uniname %in% dicts$colname$uniname) {
+    stop('`primary_uniname` ', primary_uniname,  ' is not a valid uniname.')
+  }
+  if (!secondary_uniname %in% dicts$colname$uniname) {
+    stop('`secondary_uniname` ', secondary_uniname, ' is not a valid uniname.')
+  }
   # Compute new `class_mode`.
   new_class_mode <- dicts$colclass %>% 
     pivot_longer(cols = matches("\\."), names_to = "file", values_to = "colclass") %>% 
@@ -71,9 +81,9 @@ unify_columns <- function(dicts, primary_uniname, secondary_uniname) {
         if_else(
           uniname == primary_uniname,
           union(
-            str_split_1(unique_classes[uniname == primary_uniname], ';'),
-            str_split_1(unique_classes[uniname == secondary_uniname], ';')
-          ) %>% paste(collapse = ';'),
+            str_split_1(unique_classes[uniname == primary_uniname], '; '),
+            str_split_1(unique_classes[uniname == secondary_uniname], '; ')
+          ) %>% paste(collapse = '; '),
           unique_classes
         ),
       # Add the `coverage`
@@ -81,13 +91,26 @@ unify_columns <- function(dicts, primary_uniname, secondary_uniname) {
         uniname == primary_uniname,
         coverage + coverage[uniname == secondary_uniname],
         coverage
+      ),
+      uniclass = if_else(
+        uniname == primary_uniname,
+        if_else(str_detect(unique_classes, '; '), NA, uniclass),
+        uniclass
       )
-    )
+    ) %>% 
+    arrange(desc(coverage), uniname)
   
   return(dicts)
 }
 
-delete_columns <- function(dicts, uninames_to_delete) {
+delete_uninames <- function(dicts, uninames_to_delete) {
+  if (!all(uninames_to_delete %in% dicts$colname$uniname)) {
+    warning('All `uninames_to_delete` elements must be valid uninames\n',
+            'The following are not valid uninames\n',
+      paste(uninames_to_delete[! uninames_to_delete %in% dicts$colname$uniname],
+            collapse = ' ; ; '))
+  }
+  
   dicts$colname <- dicts$colname %>% 
     # Merge columns classes from `secondary_uniname` to `primary_uniname`.
     pivot_longer(cols = matches("\\."), names_to = "file", values_to = "value") %>% 
@@ -112,7 +135,14 @@ modify_uniclass <- function(dicts, uninames_to_modify, new_uniclass) {
   return(dicts)
 }
 
-modify_uniname <- function(dicts, old_uniname, new_uniname) {
+modify_uniname <- function(dicts, new_uniname, old_uniname) {
+  if (!old_uniname %in% dicts$colname$uniname) {
+    stop('`old_uniname` ', old_uniname,  ' is not a valid uniname.')
+  }
+  if (new_uniname %in% dicts$colname$uniname) {
+    stop('`new_uniname` ', new_uniname,  ' must not be a existing uniname.')
+  }
+  
   dicts$colname <- dicts$colname %>% 
     mutate(uniname = if_else(uniname == old_uniname, new_uniname, uniname))
   dicts$colclass <- dicts$colclass %>% 
@@ -122,5 +152,9 @@ modify_uniname <- function(dicts, old_uniname, new_uniname) {
 }
 
 save_dicts <- function(dicts, new_dict_path) {
-  write_xlsx(INITIAL_DICT_PATH)
+  write_xlsx(dicts, new_dict_path)
+}
+
+view_colname <- function(dicts) {
+  dicts$colname
 }
