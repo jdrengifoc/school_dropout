@@ -4,13 +4,8 @@ source("_setup_school_dropout.R")
 files <- list.files('Deserción Escolar/data/SIMAT/Matriculas validadas por año',
                     full.names = T) %>% str_remove("\\~\\$")
 
-SIMAT_sheets <- list()
-for (file in files) {
-  SIMAT_sheets[[basename(file)]] <- excel_sheets(file)
-}
-
 # Convert xlsx to parquet
-new_folder <- FOLDER_SIMAT_2004
+new_folder <- FOLDER_RAW_SIMAT_2004
 create_folder(new_folder)
 for (file in files) {
   for (file_sheet in excel_sheets(file)) {
@@ -24,22 +19,19 @@ for (file in files) {
 }
 
 files <- list.files(new_folder)
-raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx')
+dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')
 create_partial_dictionary(folder = new_folder, files = files, 
-                          dict_path = raw_dict_path, verbose = T, overwrite = F)
-sort_partial_dictionary(raw_dict_path, overwrite = T)
+                          dict_path = dict_path, verbose = T, overwrite = F)
+sort_partial_dictionary(dict_path, overwrite = T)
 
 
 # SIMAT 2017-2023 ---------------------------------------------------------
 
-## TAREA. CORRER y ver que todo salga bien (avisar)
-## TAREA. documentar
 files <- list.files('Deserción Escolar/data/SIMAT/Matricula validada 2017-2023',
                     full.names = T) %>% str_remove("\\~\\$")
 
-new_folder <- FOLDER_SIMAT_2017
+new_folder <- FOLDER_RAW_SIMAT_2017
 create_folders(new_folder)
-
 for (file in files) {
   message("Procesando archivo: ", basename(file))
   new_file <- sprintf("%s.parquet", str_remove(basename(file), "\\..*"))
@@ -52,19 +44,15 @@ for (file in files) {
   }
 }
 
-
 files <- list.files(new_folder)
-raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2017_2023.xlsx')
+dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2017-2023.xlsx')
 create_partial_dictionary(folder = new_folder, files = files, 
-                          dict_path = raw_dict_path, verbose = T, overwrite = T)
-sort_partial_dictionary(raw_dict_path, overwrite = T)
+                          dict_path = dict_path, verbose = T, overwrite = T)
+sort_partial_dictionary(dict_path, overwrite = T)
 
 # Edit dictionaries -------------------------------------------------------
 
-raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx')
-raw_clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_clean.xlsx')
-
-get_dicts(raw_dict_path) %>% 
+get_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')) %>% 
   unify_uninames("NOMBRE1", "AL_PRIM_NOMB") %>% 
   unify_uninames("NOMBRE1", "NAME1") %>% 
   unify_uninames("NOMBRE2", "AL_SEGU_NOMB") %>% 
@@ -101,20 +89,21 @@ get_dicts(raw_dict_path) %>%
   modify_uniname("NOMBRE_PADRE", "AL_PADR_NOMB") %>% 
   modify_uniname("NRO_DOCUMENTO_PADRE", "AL_PADR_ID") %>% 
   modify_uniclass(c("NRO_DOCUMENTO", "TIPO_DOCUMENTO"), 'character') %>% 
-  save_dicts(raw_clean_dict_path)
+  save_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx'))
 
-read_excel(raw_clean_dict_path) %>% filter(uniname == "DIRECCION_RESIDENCIA") %>% View
 # Unify base files --------------------------------------------------------
 
-raw_clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_clean.xlsx')
-folder <- FOLDER_SIMAT_2004
-files <- read_excel(
-  file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx'), sheet = "Clasificacion") %>% 
-  filter(Clasificacion == "Base") %>% pull(File)
-dict <- read_excel(raw_clean_dict_path, sheet = 'colname')
-SELECTED_COLUMNS <- dict$uniname
-new_folder <- file.path(ROOT_FOLDER, 'data/processed/SIMAT/Medellin/2004-2023')
 
+folder <- FOLDER_RAW_SIMAT_2004
+files <- read_excel(
+  file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx'), sheet = "Clasificacion") %>% 
+  filter(Clasificacion == "Base") %>% pull(File)
+
+dict <- read_excel(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx'), 
+                   sheet = 'colname')
+SELECTED_COLUMNS <- dict$uniname
+
+new_folder <- FOLDER_PROCESSED_SIMAT_2004
 create_folders(new_folder)
 for (file in files) {
   message("Begin", file)
@@ -128,10 +117,80 @@ for (file in files) {
 }
 
 files <- list.files(new_folder)
-dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004_2022.xlsx')
+dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004-2022.xlsx')
 create_partial_dictionary(folder = new_folder, files = files, 
                           dict_path = dict_path, verbose = T, overwrite = T)
 sort_partial_dictionary(dict_path, overwrite = T)
+
+
+# Lab ---------------------------------------------------------------------
+
+folder <- FOLDER_PROCESSED_SIMAT_2004
+file <- 
+# Ver manualmente
+open_dataset(file.path(folder, file)) %>% 
+  select(all_of(ids_vars)) %>% 
+  distinct() %>% collect %>% View
+# No hay padre y madre juntos
+open_dataset(file.path(folder, file)) %>% 
+  select(all_of(ids_vars)) %>% 
+  filter(
+    !(NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE)),
+    !(NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE))
+  ) %>% 
+  distinct() %>% collect %>% View
+# No hay padre o madre
+open_dataset(file.path(folder, file)) %>% 
+  select(all_of(ids_vars)) %>% 
+  filter(
+    NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE),
+    NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE)
+  ) %>% 
+  distinct() %>% collect %>% View
+# Todos los padres son acudientes
+open_dataset(file.path(folder, file)) %>% 
+  select(all_of(ids_vars)) %>% 
+  filter(NRO_DOCUMENTO_PADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
+  distinct() %>% collect %>% View
+# Todas las madres son acudientes
+open_dataset(file.path(folder, file)) %>% 
+  select(all_of(ids_vars)) %>% 
+  filter(NRO_DOCUMENTO_MADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
+  distinct() %>% collect %>% View
+
+
+# Create fake ids ---------------------------------------------------------
+
+folder <- FOLDER_PROCESSED_SIMAT_2004
+ids_path <- file.path(FOLDER_INDIVIDUALS, 'ids_SIMAT_2004-2022.parquet')
+
+bind_rows(
+  open_dataset(folder) %>% 
+    distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>% 
+    mutate(label = 'estudiante') %>% collect,
+  open_dataset(folder) %>% 
+    distinct(TIPO_DOCUMENTO = TIPO_DOCUMENTO_ACUDIENTE,
+             NRO_DOCUMENTO = NRO_DOCUMENTO_ACUDIENTE) %>% 
+    mutate(label = 'acudiente') %>% collect,
+  # Assume are CC as they are parents (ussually adults)
+  open_dataset(folder) %>% 
+    distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_MADRE) %>% 
+    mutate(TIPO_DOCUMENTO = 1, label = 'madre') %>% collect,
+  open_dataset(folder) %>% 
+    distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_PADRE) %>% 
+    mutate(TIPO_DOCUMENTO = 1, label = 'padre') %>% collect
+) %>% write_parquet(ids_path)
+
+open_dataset(ids_path) %>% 
+  distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>% 
+  collect %>% mutate(fake_id = row_number()) %>% 
+  write_parquet('temp.parquet')
+
+open_dataset(ids_path) %>% 
+  left_join(open_dataset('temp.parquet'), 
+            by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) %>% 
+  write_parquet(ids_path)
+
 
 # Remove sensitive information --------------------------------------------
 
@@ -144,14 +203,36 @@ sensitive_vars <- c(
   "NRO_DOCUMENTO_MADRE", "NOMBRE_PADRE", "NRO_DOCUMENTO_PADRE"
   )
 
-read_excel(dict_path) %>% filter(uniname %in% sensitive_vars) %>% View
-dict_path <- file.path(DICTS_FOLDER, 'processed_SIMAT_2004_2022.xlsx')
-read_excel(dict_path) %>% filter(uniname %in% sensitive_vars) %>% View
-# Crear ids
-# Eliminar informacion sensible.
+folder <- FOLDER_PROCESSED_SIMAT_2004
+files <- list.files(folder)
+new_folder <- FOLDER_UNSENSITIVE_SIMAT_2004
+create_folders(new_folder)
 
-# TAREA. TABLA CON LOS UNINAMES ASOCIADOS A LAS VARIABLES DE INFORMACION SENSIBLE.
-# banned_columns <- read_excel()
-# arrow::open_dataset(file.path(folder, file)) %>% 
-#   select(all_of(banned_columns))
+for (file in files) {
+  open_dataset(file.path(folder, file)) %>% 
+    left_join(open_dataset('temp.parquet'), 
+              by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) %>% 
+    left_join(
+      open_dataset('temp.parquet') %>% rename(fake_id_acudiente = fake_id), 
+      by = join_by(TIPO_DOCUMENTO_ACUDIENTE == TIPO_DOCUMENTO,
+                   NRO_DOCUMENTO_ACUDIENTE == NRO_DOCUMENTO)
+      ) %>% 
+    left_join(
+      open_dataset('temp.parquet') %>% 
+        select(fake_id_madre = fake_id, NRO_DOCUMENTO),
+      by = join_by(NRO_DOCUMENTO_MADRE == NRO_DOCUMENTO)
+    ) %>% 
+    left_join(
+      open_dataset('temp.parquet') %>% 
+        select(fake_id_padre = fake_id, NRO_DOCUMENTO),
+      by = join_by(NRO_DOCUMENTO_PADRE == NRO_DOCUMENTO)
+    ) %>% 
+    select(-all_of(sensitive_vars)) %>% 
+    write_parquet(file.path(new_folder, file))
+}
 
+unlink('temp.parquet')
+
+#' LAB
+#' numeric DOC
+#' MADRE y PADRE incluidos en acudientes
