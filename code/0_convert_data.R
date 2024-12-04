@@ -38,19 +38,20 @@ files <- list.files('Deserción Escolar/data/SIMAT/Matricula validada 2017-2023
                     full.names = T) %>% str_remove("\\~\\$")
 
 new_folder <- FOLDER_SIMAT_2017
-create_folder(new_folder)
+create_folders(new_folder)
 
 for (file in files) {
-    message("Procesando archivo: ", basename(file))
-     new_file <- sprintf("%s.parquet", str_remove(basename(file), "\\..*"))
-   if (grepl("\\.xlsx$", file)) { 
-    read_excel(file, sheet = file_sheet) %>% 
+  message("Procesando archivo: ", basename(file))
+  new_file <- sprintf("%s.parquet", str_remove(basename(file), "\\..*"))
+  if (grepl("\\.xlsx$", file)) { 
+    read_excel(file) %>% 
       write_parquet(file.path(new_folder, new_file))
   } else { 
-    open_delim_dataset(file, delim = ";") %>% 
+    read_delim_arrow(file, delim = ";") %>% 
       write_parquet(file.path(new_folder, new_file))
   }
 }
+
 
 files <- list.files(new_folder)
 raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2017_2023.xlsx')
@@ -62,7 +63,6 @@ sort_partial_dictionary(raw_dict_path, overwrite = T)
 
 raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT.xlsx')
 raw_clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_clean.xlsx')
-
 
 get_dicts(raw_dict_path) %>% 
   unify_uninames("NOMBRE1", "AL_PRIM_NOMB") %>% 
@@ -107,16 +107,17 @@ get_dicts(raw_dict_path) %>%
       "DIRACUD", "TEL_RES", "AL_TELE_RESI", "TELEFONO", "TEL_UBICAC", "TELACUD",
       "AL_TELE_RESI_ACU", "AL_PADR_TEL", "AL_MADR_TEL", "NDOCACUD", "AL_CEDU_ACUD", 
       "NOMB1 ACUD", "AL_NOMB_ACUD", "NOMB2 ACUD", "AL_MADR_NOMB", "AL_MADR_ID", 
-      "AL_PADR_NOMB", "AL_PADR_ID")
+      "AL_PADR_NOMB", "AL_PADR_ID", "NRO_DCTO")
   ) %>% 
   # TAREA. modificar uniclass para los uninames que tienen missing de las variables de arriba.
   # view_colname() %>% 
   # filter(uniname %in% c("NOMBRE1", "NOMBRE2")) %>% View
   # La menos restrictiva
-  # modify_uniclass(
-  #   uninames_to_modify = "NOMBRE1", 
-  #   new_uniclass = "character" # "numeric", "integer" "character", "date", "logical"
-  #   ) %>% 
+    modify_uniclass(c("NRO_DOCUMENTO", "TIPO_DOCUMENTO"), 'character') %>% 
+    
+  #uninames_to_modify = "NRO_DOCUMENTO","TIPO_DOCUMENTO",  
+  #new_uniclass = "character" # "numeric", "integer" "character", "date", "logical"
+  # ) %>% 
   # modify_uniclass(c("NOMBRE1", "NOMBRE2"), 'character') %>% 
   save_dicts(raw_clean_dict_path)
 
@@ -132,14 +133,14 @@ new_folder <- file.path(ROOT_FOLDER, 'data/processed/SIMAT/Medellin/2004-2023')
 
 create_folders(new_folder)
 for (file in files) {
-  print("Begin file")
+  message("Begin", file)
   new_file <- sprintf("SIMAT_matricula_validada_%s.parquet",
                       str_extract(file, '\\d{4}'))
   arrow::open_dataset(file.path(folder, file)) %>%
     unify_colnames(dict, file, SELECTED_COLUMNS) %>% 
     unify_classes(dict, file, SELECTED_COLUMNS) %>% 
     write_parquet(file.path(new_folder, new_file))
-  print("End file")
+  message("End", file)
 }
 
 # Crear ids

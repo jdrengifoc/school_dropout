@@ -98,6 +98,7 @@ unify_uninames <- function(dicts, primary_uniname, secondary_uniname) {
         uniclass
       )
     ) %>% 
+    #filter(uniname != secondary_uniname) %>% 
     arrange(desc(coverage), uniname)
   
   return(dicts)
