@@ -73,6 +73,7 @@ get_dicts(raw_dict_path) %>%
   unify_uninames("TIPO_DOCUMENTO", "TDOC") %>% 
   unify_uninames("TIPO_DOCUMENTO", "TI_CODI_ID") %>% 
   unify_uninames("TIPO_DOCUMENTO", "TIPO_DCTO...6") %>% 
+  unify_uninames("TIPO_DOCUMENTO", "TIPO_DOCUM") %>% 
   unify_uninames("TIPO_DOCUMENTO", "TD") %>% 
   unify_uninames("NRO_DOCUMENTO", "NDOC") %>% 
   unify_uninames("NRO_DOCUMENTO", "AL_NUME_ID") %>% 
