@@ -80,7 +80,7 @@ get_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')) %>%
   modify_uniname("TEL_MADRE", "AL_MADR_TEL") %>% 
   modify_uniname("TIPO_DOCUMENTO_ACUDIENTE", "TDOCACUD") %>% 
   modify_uniname("NRO_DOCUMENTO_ACUDIENTE", "NDOCACUD") %>% 
-  modify_uniname("NRO_DOCUMENTO_ACUDIENTE", "AL_CEDU_ACUD") %>% 
+  unify_uninames("NRO_DOCUMENTO_ACUDIENTE", "AL_CEDU_ACUD") %>% 
   modify_uniname("NOMBRE1_ACUDIENTE", "NOMB1 ACUD") %>% 
   unify_uninames("NOMBRE1_ACUDIENTE", "AL_NOMB_ACUD") %>% 
   modify_uniname("NOMBRE2_ACUDIENTE", "NOMB2 ACUD") %>% 
@@ -225,6 +225,8 @@ open_dataset(ids_path) %>%
             by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) %>% 
   write_parquet(ids_path)
 
+open_dataset(ids_path) %>% 
+  count(TIPO_DOCUMENTO)%>% collect()%>% View()
 
 # Remove sensitive information --------------------------------------------
 
