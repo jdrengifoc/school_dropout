@@ -278,7 +278,8 @@ sort_partial_dictionary(dict_path, overwrite = T)
 # Create fake ids SIMAT 2017 ----------------------------------------------
 folder <- FOLDER_RAW_SIMAT_2017
 ids_path <- file.path(FOLDER_INDIVIDUALS, 'ids_SIMAT_2017-2023.parquet')
-
+files <- list.files(folder)
+  
 df <- NULL
 for (file in files) {
   df0 <- open_dataset(file.path(folder, file)) %>% 
@@ -288,13 +289,6 @@ for (file in files) {
 
 df %>% distinct %>% count(TIPO_DOCUMENTO) %>% collect %>% View
 df %>% distinct %>% 
-  left_join(
-    read_excel(file.path(DICTS_FOLDER, 'tables.xlsx'), 
-               sheet = "TIPO_DOCUMENTO_ids_map_2017"),
-    by = "TIPO_DOCUMENTO"
-  ) %>% 
-  select(-TIPO_DOCUMENTO) %>% rename(TIPO_DOCUMENTO = TIPO_DOCUMENTO_id) %>% 
-  distinct() %>% 
   collect %>% mutate(fake_id = row_number()) %>% 
   write_parquet(ids_path)
 
@@ -314,9 +308,15 @@ create_folder(new_folder)
 for (file in files) {
   df <- open_dataset(file.path(folder, file))
   df %>% 
+    mutate(TIPO_DOCUMENTO = as.numeric(TIPO_DOCUMENTO)) %>% 
     left_join(open_dataset(ids_path), 
               by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) %>% 
     select(-all_of(sensitive_vars[sensitive_vars %in% names(df)])) %>% 
     write_parquet(file.path(new_folder, file))
 }
 
+files <- list.files(new_folder)
+dict_path <- file.path(DICTS_FOLDER, 'unsensitive_SIMAT_2017-2023.xlsx')
+create_partial_dictionary(folder = new_folder, files = files, 
+                          dict_path = dict_path, verbose = T, overwrite = T)
+sort_partial_dictionary(dict_path, overwrite = T)
