@@ -123,47 +123,8 @@ create_partial_dictionary(folder = new_folder, files = files,
 sort_partial_dictionary(dict_path, overwrite = T)
 
 
-# Lab ---------------------------------------------------------------------
 
-# folder <- FOLDER_PROCESSED_SIMAT_2004
-# file <- "SIMAT_matricula_validada_2005.parquet"
-# 
-# ids_vars <- c("TIPO_DOCUMENTO", "NRO_DOCUMENTO", "NRO_DOCUMENTO_MADRE",
-#               "NRO_DOCUMENTO_PADRE", "NRO_DOCUMENTO_ACUDIENTE")
-# 
-# # Ver manualmente
-# open_dataset(file.path(folder, file)) %>% 
-#   select(all_of(ids_vars)) %>% 
-#   distinct() %>% collect %>% View
-# # No hay padre y madre juntos
-# open_dataset(file.path(folder, file)) %>% 
-#   select(all_of(ids_vars)) %>% 
-#   filter(
-#     !(NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE)),
-#     !(NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE))
-#   ) %>% 
-#   distinct() %>% collect %>% View
-# # No hay padre o madre
-# open_dataset(file.path(folder, file)) %>% 
-#   select(all_of(ids_vars)) %>% 
-#   filter(
-#     NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE),
-#     NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE)
-#   ) %>% 
-#   distinct() %>% collect %>% View
-# # Todos los padres son acudientes
-# open_dataset(file.path(folder, file)) %>% 
-#   select(all_of(ids_vars)) %>% 
-#   filter(NRO_DOCUMENTO_PADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
-#   distinct() %>% collect %>% View
-# # Todas las madres son acudientes
-# open_dataset(file.path(folder, file)) %>% 
-#   select(all_of(ids_vars)) %>% 
-#   filter(NRO_DOCUMENTO_MADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
-#   distinct() %>% collect %>% View
-
-
-# Create fake ids ---------------------------------------------------------
+# Create fake ids SIMAT 2004 ----------------------------------------------
 
 folder <- FOLDER_PROCESSED_SIMAT_2004
 ids_path <- file.path(FOLDER_INDIVIDUALS, 'ids_SIMAT_2004-2022.parquet')
@@ -180,7 +141,7 @@ for (file in files) {
     if ('TIPO_DOCUMENTO_ACUDIENTE' %in% col_names) {
       df1 <- open_dataset(file.path(folder, file)) %>% 
         select(TIPO_DOCUMENTO = TIPO_DOCUMENTO_ACUDIENTE,
-                 NRO_DOCUMENTO = NRO_DOCUMENTO_ACUDIENTE) %>%
+               NRO_DOCUMENTO = NRO_DOCUMENTO_ACUDIENTE) %>%
         distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>%
         mutate(label = 'acudiente') %>% collect
     } else {
@@ -219,9 +180,10 @@ for (file in files) {
 }
 df %>% distinct %>% 
   left_join(
-    read_excel(file.path(DICTS_FOLDER, 'tables.xlsx'), sheet = "TIPO_DOCUMENTO_ids_map"),
+    read_excel(file.path(DICTS_FOLDER, 'tables.xlsx'),
+               sheet = "TIPO_DOCUMENTO_ids_map_2004"),
     by = "TIPO_DOCUMENTO"
-    ) %>% 
+  ) %>% 
   select(-TIPO_DOCUMENTO) %>% rename(TIPO_DOCUMENTO = TIPO_DOCUMENTO_id) %>% 
   distinct() %>% 
   write_parquet(ids_path)
@@ -237,7 +199,8 @@ open_dataset(ids_path) %>%
             by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) %>% 
   write_parquet(ids_path)
 
-# Remove sensitive information --------------------------------------------
+
+# Remove sensitive information SIMAT 2004 ---------------------------------
 
 sensitive_vars <- c(
   "NOMBRE1", "NOMBRE2", "APELLIDO1", "APELLIDO2", 
@@ -311,4 +274,49 @@ sort_partial_dictionary(dict_path, overwrite = T)
 
 
 
+
+# Create fake ids SIMAT 2017 ----------------------------------------------
+folder <- FOLDER_RAW_SIMAT_2017
+ids_path <- file.path(FOLDER_INDIVIDUALS, 'ids_SIMAT_2017-2023.parquet')
+
+df <- NULL
+for (file in files) {
+  df0 <- open_dataset(file.path(folder, file)) %>% 
+    distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>% collect
+  df <- bind_rows(df, df0)
+}
+
+df %>% distinct %>% count(TIPO_DOCUMENTO) %>% collect %>% View
+df %>% distinct %>% 
+  left_join(
+    read_excel(file.path(DICTS_FOLDER, 'tables.xlsx'), 
+               sheet = "TIPO_DOCUMENTO_ids_map_2017"),
+    by = "TIPO_DOCUMENTO"
+  ) %>% 
+  select(-TIPO_DOCUMENTO) %>% rename(TIPO_DOCUMENTO = TIPO_DOCUMENTO_id) %>% 
+  distinct() %>% 
+  collect %>% mutate(fake_id = row_number()) %>% 
+  write_parquet(ids_path)
+
+
+# Remove sensitive information SIMAT 2017 ---------------------------------
+
+sensitive_vars <- c(
+  "NOMBRE1", "NOMBRE2", "APELLIDO1", "APELLIDO2", "TIPO_DOCUMENTO", 
+  "NRO_DOCUMENTO", "DIRECCION_RESIDENCIA", "TEL"
+)
+
+folder <- FOLDER_RAW_SIMAT_2017
+files <- list.files(folder)
+new_folder <- FOLDER_UNSENSITIVE_SIMAT_2017
+create_folder(new_folder)
+
+for (file in files) {
+  df <- open_dataset(file.path(folder, file))
+  df %>% 
+    left_join(open_dataset(ids_path), 
+              by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) %>% 
+    select(-all_of(sensitive_vars[sensitive_vars %in% names(df)])) %>% 
+    write_parquet(file.path(new_folder, file))
+}
 
