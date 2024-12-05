@@ -1,7 +1,7 @@
 
 # Folders -----------------------------------------------------------------
 
-create_folders <- function(folders, recursive = T) {
+create_folder <- function(folders, recursive = T) {
   for (folder in folders) {
     if (!file.exists(folder)) {
       dir.create(folder, recursive = recursive)
