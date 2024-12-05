@@ -126,7 +126,11 @@ sort_partial_dictionary(dict_path, overwrite = T)
 # Lab ---------------------------------------------------------------------
 
 folder <- FOLDER_PROCESSED_SIMAT_2004
-file <- 
+file <- "SIMAT_matricula_validada_2005.parquet"
+
+ids_vars <- c("TIPO_DOCUMENTO", "NRO_DOCUMENTO", "NRO_DOCUMENTO_MADRE",
+              "NRO_DOCUMENTO_PADRE", "NRO_DOCUMENTO_ACUDIENTE")
+
 # Ver manualmente
 open_dataset(file.path(folder, file)) %>% 
   select(all_of(ids_vars)) %>% 
@@ -165,7 +169,7 @@ folder <- FOLDER_PROCESSED_SIMAT_2004
 ids_path <- file.path(FOLDER_INDIVIDUALS, 'ids_SIMAT_2004-2022.parquet')
 
 bind_rows(
-  open_dataset(folder) %>% 
+  open_dataset(folder) %>% names()
     distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>% 
     mutate(label = 'estudiante') %>% collect,
   open_dataset(folder) %>% 
