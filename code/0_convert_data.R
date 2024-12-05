@@ -70,7 +70,6 @@ get_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')) %>%
   unify_uninames("DIRECCION_RESIDENCIA", "DIR_RES") %>% 
   unify_uninames("DIRECCION_RESIDENCIA", "DIREC_RESID") %>% 
   unify_uninames("DIRECCION_RESIDENCIA", "DIREC_RESIDENCIA") %>% 
-  unify_uninames("DIRECCION_RESIDENCIA", "DIRACUD") %>% 
   unify_uninames("TEL", "TEL_RES") %>% 
   unify_uninames("TEL", "AL_TELE_RESI") %>% 
   unify_uninames("TEL", "TELEFONO") %>% 
@@ -79,7 +78,8 @@ get_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')) %>%
   unify_uninames("TEL_ACUDIENTE", "AL_TELE_RESI_ACU") %>% 
   modify_uniname("TEL_PADRE", "AL_PADR_TEL") %>% 
   modify_uniname("TEL_MADRE", "AL_MADR_TEL") %>% 
-  modify_uniname("TIPO_DOCUMENTO_ACUDIENTE", "NDOCACUD") %>% 
+  modify_uniname("TIPO_DOCUMENTO_ACUDIENTE", "TDOCACUD") %>% 
+  modify_uniname("NRO_DOCUMENTO_ACUDIENTE", "NDOCACUD") %>% 
   modify_uniname("NRO_DOCUMENTO_ACUDIENTE", "AL_CEDU_ACUD") %>% 
   modify_uniname("NOMBRE1_ACUDIENTE", "NOMB1 ACUD") %>% 
   unify_uninames("NOMBRE1_ACUDIENTE", "AL_NOMB_ACUD") %>% 
@@ -125,42 +125,42 @@ sort_partial_dictionary(dict_path, overwrite = T)
 
 # Lab ---------------------------------------------------------------------
 
-folder <- FOLDER_PROCESSED_SIMAT_2004
-file <- "SIMAT_matricula_validada_2005.parquet"
-
-ids_vars <- c("TIPO_DOCUMENTO", "NRO_DOCUMENTO", "NRO_DOCUMENTO_MADRE",
-              "NRO_DOCUMENTO_PADRE", "NRO_DOCUMENTO_ACUDIENTE")
-
-# Ver manualmente
-open_dataset(file.path(folder, file)) %>% 
-  select(all_of(ids_vars)) %>% 
-  distinct() %>% collect %>% View
-# No hay padre y madre juntos
-open_dataset(file.path(folder, file)) %>% 
-  select(all_of(ids_vars)) %>% 
-  filter(
-    !(NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE)),
-    !(NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE))
-  ) %>% 
-  distinct() %>% collect %>% View
-# No hay padre o madre
-open_dataset(file.path(folder, file)) %>% 
-  select(all_of(ids_vars)) %>% 
-  filter(
-    NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE),
-    NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE)
-  ) %>% 
-  distinct() %>% collect %>% View
-# Todos los padres son acudientes
-open_dataset(file.path(folder, file)) %>% 
-  select(all_of(ids_vars)) %>% 
-  filter(NRO_DOCUMENTO_PADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
-  distinct() %>% collect %>% View
-# Todas las madres son acudientes
-open_dataset(file.path(folder, file)) %>% 
-  select(all_of(ids_vars)) %>% 
-  filter(NRO_DOCUMENTO_MADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
-  distinct() %>% collect %>% View
+# folder <- FOLDER_PROCESSED_SIMAT_2004
+# file <- "SIMAT_matricula_validada_2005.parquet"
+# 
+# ids_vars <- c("TIPO_DOCUMENTO", "NRO_DOCUMENTO", "NRO_DOCUMENTO_MADRE",
+#               "NRO_DOCUMENTO_PADRE", "NRO_DOCUMENTO_ACUDIENTE")
+# 
+# # Ver manualmente
+# open_dataset(file.path(folder, file)) %>% 
+#   select(all_of(ids_vars)) %>% 
+#   distinct() %>% collect %>% View
+# # No hay padre y madre juntos
+# open_dataset(file.path(folder, file)) %>% 
+#   select(all_of(ids_vars)) %>% 
+#   filter(
+#     !(NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE)),
+#     !(NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE))
+#   ) %>% 
+#   distinct() %>% collect %>% View
+# # No hay padre o madre
+# open_dataset(file.path(folder, file)) %>% 
+#   select(all_of(ids_vars)) %>% 
+#   filter(
+#     NRO_DOCUMENTO_MADRE == '' | is.na(NRO_DOCUMENTO_MADRE),
+#     NRO_DOCUMENTO_PADRE == '' | is.na(NRO_DOCUMENTO_PADRE)
+#   ) %>% 
+#   distinct() %>% collect %>% View
+# # Todos los padres son acudientes
+# open_dataset(file.path(folder, file)) %>% 
+#   select(all_of(ids_vars)) %>% 
+#   filter(NRO_DOCUMENTO_PADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
+#   distinct() %>% collect %>% View
+# # Todas las madres son acudientes
+# open_dataset(file.path(folder, file)) %>% 
+#   select(all_of(ids_vars)) %>% 
+#   filter(NRO_DOCUMENTO_MADRE != NRO_DOCUMENTO_ACUDIENTE) %>% 
+#   distinct() %>% collect %>% View
 
 
 # Create fake ids ---------------------------------------------------------
@@ -168,22 +168,52 @@ open_dataset(file.path(folder, file)) %>%
 folder <- FOLDER_PROCESSED_SIMAT_2004
 ids_path <- file.path(FOLDER_INDIVIDUALS, 'ids_SIMAT_2004-2022.parquet')
 
-bind_rows(
-  open_dataset(folder) %>% names()
+df <- NULL
+for (file in files) {
+  # Student.
+  df0 <- open_dataset(file.path(folder, file)) %>% 
     distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>% 
-    mutate(label = 'estudiante') %>% collect,
-  open_dataset(folder) %>% 
-    distinct(TIPO_DOCUMENTO = TIPO_DOCUMENTO_ACUDIENTE,
-             NRO_DOCUMENTO = NRO_DOCUMENTO_ACUDIENTE) %>% 
-    mutate(label = 'acudiente') %>% collect,
-  # Assume are CC as they are parents (ussually adults)
-  open_dataset(folder) %>% 
-    distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_MADRE) %>% 
-    mutate(TIPO_DOCUMENTO = 1, label = 'madre') %>% collect,
-  open_dataset(folder) %>% 
-    distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_PADRE) %>% 
-    mutate(TIPO_DOCUMENTO = 1, label = 'padre') %>% collect
-) %>% write_parquet(ids_path)
+    mutate(label = 'estudiante') %>% collect
+  # Guardian.
+  if ('NRO_DOCUMENTO_ACUDIENTE' %in% names(df0)) {
+    if ('TIPO_DOCUMENTO' %in% names(df0)) {
+      df1 <- open_dataset(file.path(folder, file)) %>% 
+        distinct(TIPO_DOCUMENTO = TIPO_DOCUMENTO_ACUDIENTE,
+                 NRO_DOCUMENTO = NRO_DOCUMENTO_ACUDIENTE) %>% 
+        mutate(label = 'acudiente') %>% collect
+    } else {
+      df1 <- open_dataset(file.path(folder, file)) %>% 
+        distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_ACUDIENTE) %>% 
+        # We assume by logic, name variable but in 2004 are about 98%.
+        mutate(TIPO_DOCUMENTO = 1, label = 'acudiente') %>% collect
+    }
+    df0 <- bind_rows(df0, df1)
+  }
+  # Mother.
+  if ('NRO_DOCUMENTO_MADRE' %in% names(df0)) {
+    df0 <- bind_rows(
+      df0, 
+      # Assume are CC as they are parents (ussually adults)
+      open_dataset(folder) %>% 
+        distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_PADRE) %>% 
+        mutate(TIPO_DOCUMENTO = 1, label = 'padre') %>% collect
+    )
+  }
+  # Father.
+  if ('NRO_DOCUMENTO_PADRE' %in% names(df0)) {
+    df0 <- bind_rows(
+      df0, 
+      # Assume are CC as they are parents (ussually adults)
+      open_dataset(folder) %>% 
+        distinct(NRO_DOCUMENTO = NRO_DOCUMENTO_MADRE) %>% 
+        mutate(TIPO_DOCUMENTO = 1, label = 'madre') %>% collect
+    )
+  }
+  
+  df <- bind_rows(df, df0)
+}
+df %>% distinct %>% write_parquet(ids_path)
+
 
 open_dataset(ids_path) %>% 
   distinct(TIPO_DOCUMENTO, NRO_DOCUMENTO) %>% 
