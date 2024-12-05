@@ -31,7 +31,7 @@ files <- list.files('Deserción Escolar/data/SIMAT/Matricula validada 2017-2023
                     full.names = T) %>% str_remove("\\~\\$")
 
 new_folder <- FOLDER_RAW_SIMAT_2017
-create_folders(new_folder)
+create_folder(new_folder)
 for (file in files) {
   message("Procesando archivo: ", basename(file))
   new_file <- sprintf("%s.parquet", str_remove(basename(file), "\\..*"))
@@ -96,7 +96,7 @@ get_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')) %>%
 
 folder <- FOLDER_RAW_SIMAT_2004
 files <- read_excel(
-  file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx'), sheet = "Clasificacion") %>% 
+  file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_tablas.xlsx'), sheet = "Clasificacion") %>% 
   filter(Clasificacion == "Base") %>% pull(File)
 
 dict <- read_excel(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx'), 
@@ -104,7 +104,7 @@ dict <- read_excel(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx'),
 SELECTED_COLUMNS <- dict$uniname
 
 new_folder <- FOLDER_PROCESSED_SIMAT_2004
-create_folders(new_folder)
+create_folder(new_folder)
 for (file in files) {
   message("Begin", file)
   new_file <- sprintf("SIMAT_matricula_validada_%s.parquet",
