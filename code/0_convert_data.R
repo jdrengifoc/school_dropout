@@ -154,22 +154,22 @@ for (file in files) {
     }
     df0 <- bind_rows(df0, df1)
   }
-  # Mother.
-  if ('NRO_DOCUMENTO_MADRE' %in% col_names) {
+  # Father.
+  if ('NRO_DOCUMENTO_PADRE' %in% col_names) { 
     df0 <- bind_rows(
       df0, 
-      # Assume are CC as they are parents (ussually adults)
+      # Assume are CC as they are parents (usually adults)
       open_dataset(file.path(folder, file)) %>% 
         select(NRO_DOCUMENTO = NRO_DOCUMENTO_PADRE) %>% 
         distinct(NRO_DOCUMENTO) %>% 
         mutate(TIPO_DOCUMENTO = "1", label = 'padre') %>% collect
     )
   }
-  # Father.
-  if ('NRO_DOCUMENTO_PADRE' %in% col_names) {
+  # Mother.
+  if ('NRO_DOCUMENTO_MADRE' %in% col_names) {
     df0 <- bind_rows(
       df0, 
-      # Assume are CC as they are parents (ussually adults)
+      # Assume are CC as they are parents (usually adults)
       open_dataset(file.path(folder, file)) %>% 
         select(NRO_DOCUMENTO = NRO_DOCUMENTO_MADRE) %>% 
         distinct(NRO_DOCUMENTO) %>% 
@@ -224,7 +224,8 @@ for (file in files) {
     left_join(open_dataset('temp.parquet'), 
               by = c('TIPO_DOCUMENTO', 'NRO_DOCUMENTO')) 
   col_names <- names(df)
-  if ('NRO_DOCUMENTO_ACUDIENTE' %in% col_names) {
+  if ('NRO_DOCUMENTO_ACUDIENTE' %in% col_names) { 
+    #Asumimos que todos son cedulas 
     if (!'TIPO_DOCUMENTO_ACUDIENTE' %in% col_names) {
       df <- df %>% mutate(TIPO_DOCUMENTO_ACUDIENTE = "1")
     }
@@ -287,7 +288,7 @@ for (file in files) {
   df <- bind_rows(df, df0)
 }
 
-df %>% distinct %>% count(TIPO_DOCUMENTO) %>% collect %>% View
+# df %>% distinct %>% count(TIPO_DOCUMENTO) %>% collect %>% View 
 df %>% distinct %>% 
   collect %>% mutate(fake_id = row_number()) %>% 
   write_parquet(ids_path)
