@@ -50,46 +50,43 @@ create_partial_dictionary(folder = new_folder, files = files,
                           dict_path = dict_path, verbose = T, overwrite = T)
 sort_partial_dictionary(dict_path, overwrite = T)
 
-# Edit dictionaries -------------------------------------------------------
 
-get_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')) %>% 
-  unify_uninames("NOMBRE1", "AL_PRIM_NOMB") %>% 
-  unify_uninames("NOMBRE1", "NAME1") %>% 
-  unify_uninames("NOMBRE2", "AL_SEGU_NOMB") %>% 
-  unify_uninames("APELLIDO1", "AL_PRIM_APEL") %>% 
-  unify_uninames("APELLIDO2", "AL_SEGU_APEL") %>% 
-  unify_uninames("TIPO_DOCUMENTO", "TDOC") %>% 
-  unify_uninames("TIPO_DOCUMENTO", "TI_CODI_ID") %>% 
-  unify_uninames("TIPO_DOCUMENTO", "TIPO_DCTO...6") %>% 
-  unify_uninames("TIPO_DOCUMENTO", "TIPO_DOCUM") %>% 
-  unify_uninames("TIPO_DOCUMENTO", "TD") %>% 
-  unify_uninames("NRO_DOCUMENTO", "NDOC") %>% 
-  unify_uninames("NRO_DOCUMENTO", "AL_NUME_ID") %>% 
-  unify_uninames("NRO_DOCUMENTO", "NRO_DOCUM") %>% 
-  unify_uninames("NRO_DOCUMENTO", "NRO_DCTO") %>% 
-  unify_uninames("DIRECCION_RESIDENCIA", "DIR_RES") %>% 
-  unify_uninames("DIRECCION_RESIDENCIA", "DIREC_RESID") %>% 
-  unify_uninames("DIRECCION_RESIDENCIA", "DIREC_RESIDENCIA") %>% 
-  unify_uninames("TEL", "TEL_RES") %>% 
-  unify_uninames("TEL", "AL_TELE_RESI") %>% 
-  unify_uninames("TEL", "TELEFONO") %>% 
-  unify_uninames("TEL", "TEL_UBICAC") %>% 
-  modify_uniname("TEL_ACUDIENTE", "TELACUD") %>% 
-  unify_uninames("TEL_ACUDIENTE", "AL_TELE_RESI_ACU") %>% 
-  modify_uniname("TEL_PADRE", "AL_PADR_TEL") %>% 
-  modify_uniname("TEL_MADRE", "AL_MADR_TEL") %>% 
-  modify_uniname("TIPO_DOCUMENTO_ACUDIENTE", "TDOCACUD") %>% 
-  modify_uniname("NRO_DOCUMENTO_ACUDIENTE", "NDOCACUD") %>% 
-  unify_uninames("NRO_DOCUMENTO_ACUDIENTE", "AL_CEDU_ACUD") %>% 
-  modify_uniname("NOMBRE1_ACUDIENTE", "NOMB1 ACUD") %>% 
-  unify_uninames("NOMBRE1_ACUDIENTE", "AL_NOMB_ACUD") %>% 
-  modify_uniname("NOMBRE2_ACUDIENTE", "NOMB2 ACUD") %>% 
-  modify_uniname("NOMBRE_MADRE", "AL_MADR_NOMB") %>% 
-  modify_uniname("NRO_DOCUMENTO_MADRE", "AL_MADR_ID") %>% 
-  modify_uniname("NOMBRE_PADRE", "AL_PADR_NOMB") %>% 
-  modify_uniname("NRO_DOCUMENTO_PADRE", "AL_PADR_ID") %>% 
-  modify_uniclass(c("NRO_DOCUMENTO", "TIPO_DOCUMENTO"), 'character') %>% 
-  save_dicts(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx'))
+
+# Edit dictionaries ---------------------------------------------------
+raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')
+clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx')
+
+mapping_uninames <- list(
+  "NOMBRE1" = c("AL_PRIM_NOMB", "NAME1"),
+  "NOMBRE2" = "AL_SEGU_NOMB",
+  "APELLIDO1" = "AL_PRIM_APEL",
+  "APELLIDO2" = "AL_SEGU_APEL",
+  "TIPO_DOCUMENTO" = c(
+    "TDOC", "TI_CODI_ID", "TIPO_DCTO...6", "TIPO_DOCUM", "TD"),
+  "NRO_DOCUMENTO" = c("NDOC", "AL_NUME_ID", "NRO_DOCUM", "NRO_DCTO"),
+  "DIRECCION_RESIDENCIA" = c("DIR_RES", "DIREC_RESID", "DIREC_RESIDENCIA"),
+  "TEL" = c("TEL_RES", "AL_TELE_RESI", "TELEFONO", "TEL_UBICAC"),
+  "TEL_ACUDIENTE" = c("TELACUD", "AL_TELE_RESI_ACU"),
+  "TEL_PADRE" = "AL_PADR_TEL",
+  "TEL_MADRE" = "AL_MADR_TEL",
+  "TIPO_DOCUMENTO_ACUDIENTE" = "TDOCACUD",
+  "NRO_DOCUMENTO_ACUDIENTE" = c("NDOCACUD", "AL_CEDU_ACUD"),
+  "NOMBRE1_ACUDIENTE" = c("NOMB1 ACUD", "AL_NOMB_ACUD"),
+  "NOMBRE2_ACUDIENTE" = "NOMB2 ACUD",
+  "NOMBRE_MADRE" = "AL_MADR_NOMB",
+  "NRO_DOCUMENTO_MADRE" = "AL_MADR_ID",
+  "NOMBRE_PADRE" = "AL_PADR_NOMB",
+  "NRO_DOCUMENTO_PADRE" = "AL_PADR_ID"
+)
+
+mapping_uniclasses <- list(
+  "character" = c("NRO_DOCUMENTO", "TIPO_DOCUMENTO")
+)
+
+get_dicts(raw_dict_path) %>% 
+  modify_uninames(mapping_uninames) %>% 
+  modify_uniclasses(mapping_uniclasses) %>% 
+  save_dicts(clean_dict_path)
 
 # Unify base files --------------------------------------------------------
 
@@ -99,8 +96,7 @@ files <- read_excel(
   file.path(DICTS_FOLDER, 'tables.xlsx'), sheet = "Clasificacion") %>% 
   filter(Clasificacion == "Base") %>% pull(File)
 
-dict <- read_excel(file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx'), 
-                   sheet = 'colname')
+dict <- get_dicts(clean_dict_path)[['colname']]
 SELECTED_COLUMNS <- dict$uniname
 
 new_folder <- FOLDER_PROCESSED_SIMAT_2004

@@ -1,4 +1,4 @@
-DICTS_FOLDER <- file.path(ROOT_FOLDER, "data/_metadata/dicts/")
+DICTS_FOLDER <- file.path(ROOT_FOLDER, "data/_metadata/dicts")
 
 FOLDER_RAW_SIMAT <- file.path(ROOT_FOLDER, 'data/1_raw/SIMAT')
 FOLDER_RAW_SIMAT_2004 <- file.path(FOLDER_RAW_SIMAT, '2004-2022')

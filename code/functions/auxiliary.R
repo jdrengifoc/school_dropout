@@ -20,7 +20,29 @@ get_dicts <- function(dict_path) {
   )
 }
 
-unify_uninames <- function(dicts, primary_uniname, secondary_uniname) {
+select_uninames <- function(dicts, selected_uninames) {
+  if (!'uniname' %in% names(dicts$colname)) {
+    stop('The column uniname must be in the dictionaries.')
+  }
+  if (!all(selected_uninames %in% dicts$colname$uniname)) {
+    missing_uninames <- paste(
+      selected_uninames[! selected_uninames %in% dicts$colname$uniname],
+      collapse = ','
+    )
+    stop('The following `selected_uninames` are invalid:\n\t', missing_uninames)
+  }
+  
+  dicts$colname <- dicts$colname %>% 
+    filter(uniname %in% selected_uninames) %>% 
+    slice(match(selected_uninames, uniname))
+  dicts$colclass <- dicts$colclass %>% 
+    filter(uniname %in% selected_uninames) %>% 
+    slice(match(selected_uninames, uniname))
+  
+  return(dicts)
+}
+
+unify_uninames  <- function(dicts, primary_uniname, secondary_uniname) {
   
   if (!'uniname' %in% names(dicts$colname)) {
     stop('The column uniname must be in the dictionaries.')
@@ -108,8 +130,8 @@ delete_uninames <- function(dicts, uninames_to_delete) {
   if (!all(uninames_to_delete %in% dicts$colname$uniname)) {
     warning('All `uninames_to_delete` elements must be valid uninames\n',
             'The following are not valid uninames\n',
-      paste(uninames_to_delete[! uninames_to_delete %in% dicts$colname$uniname],
-            collapse = ' ; ; '))
+            paste(uninames_to_delete[! uninames_to_delete %in% dicts$colname$uniname],
+                  collapse = ' ; ; '))
   }
   
   dicts$colname <- dicts$colname %>% 
@@ -135,6 +157,17 @@ modify_uniclass <- function(dicts, uninames_to_modify, new_uniclass) {
   
   return(dicts)
 }
+modify_uniclasses <- function(dicts, mapping_uniclasses) {
+  # Iterate over the mapping and update the uniclass for each group of uninames
+  for (new_uniclass in names(mapping_uniclasses)) {
+    uninames_to_modify <- mapping_uniclasses[[new_uniclass]]
+    dicts$colname <- dicts$colname %>%
+      mutate(uniclass = if_else(uniname %in% uninames_to_modify, 
+                                new_uniclass, uniclass))
+  }
+  
+  return(dicts)
+}
 
 modify_uniname <- function(dicts, new_uniname, old_uniname) {
   if (!old_uniname %in% dicts$colname$uniname) {
@@ -152,11 +185,31 @@ modify_uniname <- function(dicts, new_uniname, old_uniname) {
   return(dicts)
 }
 
+modify_uninames <- function(dicts, uniname_mapping) {
+  # `uniname_mapping` is a named list where names are `new_uniname` and values are `old_uniname`
+  
+  for (new_uniname in names(uniname_mapping)) {
+    old_uninames <- uniname_mapping[[new_uniname]]
+    for (old_uniname in old_uninames) {
+      current_uninames <- dicts %>% view_colname() %>% pull(uniname)
+      if (new_uniname %in% current_uninames) {
+        dicts <- unify_uninames(dicts, new_uniname, old_uniname)
+      } else {
+        dicts <- modify_uniname(dicts, new_uniname, old_uniname)
+      }
+      
+    }
+  }
+  
+  return(dicts)
+}
+
 save_dicts <- function(dicts, new_dict_path) {
   write_xlsx(dicts, new_dict_path)
 }
 
-view_colname <- function(dicts) {
-  dicts$colname
-}
+# get_sheet <- function(dicts, sheet_name) {
+#   dicts[[sheet_name]]
+# }
+
 
