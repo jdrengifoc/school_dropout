@@ -4,9 +4,9 @@
 
 -   [x] Anonimizar base
 -   [ ] Base de estudiantes
-    -   [ ] **JD** Modificar código para incorporar nuevas funciones de diccionarios.
+    -   [x] **JD** Modificar código para incorporar nuevas funciones de diccionarios.
     -   [ ] **JD** Detectar calidad de `fake_id` (IDs de acudiente) 
-    -   [ ] **MJ** Detectar variables de interés, su uniname (yo lo escojo- Descripción que hay en la variable) y uniclass, porcentaje de años por variable.
+    -   [x] **MJ** Detectar variables de interés, su uniname (yo lo escojo- Descripción que hay en la variable) y uniclass, porcentaje de años por variable.
     -   [ ] Entity resolution para los originales y crear `PER_ID`.
     -   [ ] Unificar los datos para las variables de interés
     -   [ ] Crear variable de deserción (definición)
