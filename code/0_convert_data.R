@@ -52,7 +52,7 @@ sort_partial_dictionary(dict_path, overwrite = T)
 
 
 
-# Edit dictionaries ---------------------------------------------------
+# Edit dictionary 2004 ---------------------------------------------------
 raw_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022.xlsx')
 clean_dict_path <- file.path(DICTS_FOLDER, 'raw_SIMAT_2004-2022_clean.xlsx')
 
